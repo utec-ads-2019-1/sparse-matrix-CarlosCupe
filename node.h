@@ -36,6 +36,8 @@ public:
     Element(unsigned __x__, unsigned __y__, T __value__)
     : x(__x__), y(__y__), value(__value__) { }
 
+    Element(){ }
+
     friend class Matrix<T>;
 };
 
