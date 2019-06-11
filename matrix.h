@@ -140,6 +140,36 @@ Matrix<T> Matrix<T>::operator*(T scalar) const {//Se puede mejorar
     return temp;
 }
 
+
+template <typename T>
+Matrix<T> Matrix<T>::operator*(Matrix<T> other) const {
+    if (other.columns != rows) exit(1);
+    
+    Element<T> *ptr_col, *ptr_row;
+    int temp_sum;
+    Matrix<T> temp(other.rows, columns);
+
+    for (int i = 0; i < columns; ++i) {
+        for (int j = 0; i < other.rows; ++j) {
+            temp_sum = 0;
+            ptr_row = (Element<T>*)other.vector_row[j]->down;
+            ptr_col = (Element<T>*)vector_col[i]->next;
+
+            while (ptr_col && ptr_row) {
+                if (ptr_col.y == ptr_row.x) {
+                    temp_sum += ptr_col.value * ptr_row.value;
+                } else {
+                    if (ptr_col.y > ptr_row.x)
+                        ptr_row = (Element<T>*)ptr_row->down;
+                    else
+                        ptr_col = (Element<T>*)ptr_col->next;
+                }
+            }
+            temp.set(j, i, temp_sum);
+        }
+    }   return temp;
+}
+
 template <typename T>
 Matrix<T> Matrix<T>::operator+(Matrix<T> other) const {
     if (rows != other.rows || columns != other.columns) exit(1);
