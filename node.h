@@ -13,6 +13,16 @@ public:
     explicit Node() 
     : next(nullptr), down(nullptr) {}
 
+    void delete_recursive() {
+        if (down)
+            down->delete_recursive();
+        delete this;
+    }
+
+    ~Node(){}
+
+    void transpose_nodes() { swap(next, down); }
+
     friend class Matrix<T>;
 };
 
@@ -24,6 +34,8 @@ protected:
 public:
     Header(unsigned __index__)
     : index(__index__) { }
+
+    friend class Matrix<T>;
 };
 
 template <typename T>
@@ -37,6 +49,12 @@ public:
     : x(__x__), y(__y__), value(__value__) { }
 
     Element(){ }
+
+    void transpose_pos() { swap(x, y); }
+
+    Element<T>* self_copy() {
+        return new Element<T> (y, x, value);
+    }
 
     friend class Matrix<T>;
 };

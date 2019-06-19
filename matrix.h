@@ -25,6 +25,7 @@ public:
     Matrix<T> operator+(Matrix<T> other) const;
     Matrix<T> operator-(Matrix<T> other) const;
     Matrix<T> transpose() const;
+    bool resize(int rows, int columns, bool force) const;
     void print() const;
 
     ~Matrix();
@@ -74,20 +75,30 @@ void Matrix<T>::set(unsigned x, unsigned y, T value) {
     if (x >= rows || y >= columns)
         exit(1);
     
-    Element<T> **ptr_row;
-    Element<T> **ptr_col;
-    find_by_rows(x, y, ptr_row);
-    /*
-    if () {
-        if ((*ptr_row)->y == y) {
-            // Crear funcion delete si value es 0
-            //if (value == 0) ;
-            //else (*ptr_row)->value = value;
-            return;
-        }
-    }*/
+    Element<T> **ptr_row, **ptr_col;
+    bool exist;
+    
+    if (find_by_rows(x, y, ptr_row))
+        exist = (*ptr_row)->y == y;
+    
+    if (exist && value != 0) {
+        (*ptr_row)->value = value;
+        return;
+    }
 
     find_by_cols(x, y, ptr_col);
+
+    if (exist && value == 0) {
+        Node<T> *temp = (Node<T>*)(*ptr_col);
+        *ptr_row = (Element<T> *)(*ptr_row)->down;
+        *ptr_col = (Element<T> *)(*ptr_col)->next;
+        delete temp;
+        return;
+    }
+
+    if (value == 0) {
+        return;
+    }
 
     Element<T> *temp = new Element<T>(x, y, value);
     temp->down = (Node<T>*)*ptr_col;
@@ -121,8 +132,8 @@ T Matrix<T>::operator()(unsigned x, unsigned y) const {
     Element<T> **ptr;
 
     if (!find_by_rows(x, y, ptr)) exit(1);
-
-    return (*ptr)->value;
+    
+    return (ptr) ? (*ptr)->value : 0;
 }
 
 template <typename T>
@@ -149,17 +160,19 @@ Matrix<T> Matrix<T>::operator*(Matrix<T> other) const {
     int temp_sum;
     Matrix<T> temp(other.rows, columns);
 
-    for (int i = 0; i < columns; ++i) {
-        for (int j = 0; i < other.rows; ++j) {
+    for (int i = 0; i < vector_col.size(); ++i) {
+        for (int j = 0; j < other.vector_row.size(); ++j) {
             temp_sum = 0;
             ptr_row = (Element<T>*)other.vector_row[j]->down;
             ptr_col = (Element<T>*)vector_col[i]->next;
 
             while (ptr_col && ptr_row) {
-                if (ptr_col.y == ptr_row.x) {
-                    temp_sum += ptr_col.value * ptr_row.value;
+                if (ptr_col->x == ptr_row->y) {
+                    temp_sum += (ptr_col->value * ptr_row->value);
+                    ptr_row = (Element<T>*)ptr_row->down;
+                    ptr_col = (Element<T>*)ptr_col->next;
                 } else {
-                    if (ptr_col.y > ptr_row.x)
+                    if (ptr_col->x > ptr_row->y)
                         ptr_row = (Element<T>*)ptr_row->down;
                     else
                         ptr_col = (Element<T>*)ptr_col->next;
@@ -249,7 +262,47 @@ Matrix<T> Matrix<T>::operator-(Matrix<T> other) const {
 }
 
 template <typename T>
+Matrix<T> Matrix<T>::transpose() const {
+    Matrix<T> temp(columns, rows);
+    Node<T> *ptr_last;
+    Element<T> **ptr_new, **ptr_actual;
+
+    for (int i = 0; i < vector_col.size(); ++i) {
+        ptr_new     = (Element<T>**)&temp.vector_row[i]->down;
+        ptr_actual  = (Element<T>**)&vector_col[i]->next;
+        
+        if (i) ptr_last = (Node<T>*)temp.vector_row[i-1]->down;
+        
+        for (; *ptr_actual != nullptr; ptr_actual = (Element<T>**)&(*ptr_actual)->next) {
+
+            *ptr_new = (*ptr_actual)->self_copy();
+
+            if (i == 0) {
+                ptr_last = (Node<T>*)(temp.vector_col[(*ptr_new)->y]);
+                ptr_last->next = *ptr_new;
+            } else {
+                while (ptr_last) {
+                    if (((Element<T>*)ptr_last)->y < (*ptr_new)->y)
+                        ptr_last = ptr_last->down;
+                    else break;
+                }
+                if (ptr_last && ((Element<T>*)ptr_last)->y == (*ptr_new)->y)
+                    ptr_last->next = *ptr_new;
+            }
+            ptr_new = (Element<T>**)&(*ptr_new)->down;
+        }
+    }   return temp;
+}
+
+template <typename T>
 Matrix<T>::~Matrix() {
-    vector_col.clear();
+    for (int i = 0; i < vector_row.size(); ++i)
+        vector_row[i]->delete_recursive();
+    
     vector_row.clear();
+    
+    for (int i = 0; i < vector_col.size(); ++i)
+        delete vector_col[i];
+
+    vector_col.clear();
 }

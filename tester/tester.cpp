@@ -62,6 +62,5 @@ Matrix<T> Tester::setMatrix(T **&matrix, unsigned int rows, unsigned int columns
             ASSERT(result(i, j) == matrix[i][j], "There is a problem with the set or operator()");
         }
     }
-
     return result;
 }
