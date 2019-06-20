@@ -28,6 +28,8 @@ public:
     bool resize(int rows, int columns, bool force) const;
     void print() const;
 
+    void destroy() const;
+
     ~Matrix();
 
 protected:
@@ -189,13 +191,15 @@ Matrix<T> Matrix<T>::operator+(Matrix<T> other) const {
     Matrix<T> temp(rows, columns);
     Element<T> *ptr_int, *ptr_ext;
     
-    T suma;
+    T ans;
 
     for (unsigned i = 0; i < vector_row.size(); ++i) {
         ptr_int = (Element<T>*)vector_row[i]->down;
         ptr_ext = (Element<T>*)other.vector_row[i]->down;
         for (unsigned j = 0; j < vector_col.size(); ++j) {
-            suma = 0;
+            if (ptr_int == nullptr && ptr_ext == nullptr) break;
+
+            ans = 0;
 
             while (ptr_int && ptr_int->y < j)
                 ptr_int = (Element<T>*)ptr_int->down;
@@ -203,11 +207,11 @@ Matrix<T> Matrix<T>::operator+(Matrix<T> other) const {
             while (ptr_ext && ptr_ext->y < j)
                 ptr_ext = (Element<T>*)ptr_ext->down;
             
-            if (ptr_int && ptr_int->y == j) suma += ptr_int->value;
+            if (ptr_int && ptr_int->y == j) ans += ptr_int->value;
             
-            if (ptr_ext && ptr_ext->y == j) suma += ptr_ext->value;
+            if (ptr_ext && ptr_ext->y == j) ans += ptr_ext->value;
 
-            if (suma != 0) temp.set(i, j, suma);
+            if (ans != 0) temp.set(i, j, ans);
         }
     }   return temp;
 }
@@ -219,25 +223,26 @@ Matrix<T> Matrix<T>::operator-(Matrix<T> other) const {
     Matrix<T> temp(rows, columns);
     Element<T> *ptr_int, *ptr_ext;
     
-    T resta;
+    T ans;
 
     for (unsigned i = 0; i < vector_row.size(); ++i) {
         ptr_int = (Element<T>*)vector_row[i]->down;
         ptr_ext = (Element<T>*)other.vector_row[i]->down;
         for (unsigned j = 0; j < vector_col.size(); ++j) {
-            resta = 0;
-            
+            if (ptr_int == nullptr && ptr_ext == nullptr) break;
+            ans = 0;
+
             while (ptr_int && ptr_int->y < j)
                 ptr_int = (Element<T>*)ptr_int->down;
 
             while (ptr_ext && ptr_ext->y < j)
                 ptr_ext = (Element<T>*)ptr_ext->down;
             
-            if (ptr_int && ptr_int->y == j) resta = ptr_int->value;
+            if (ptr_int && ptr_int->y == j) ans = ptr_int->value;
             
-            if (ptr_ext && ptr_ext->y == j) resta -= ptr_ext->value;
+            if (ptr_ext && ptr_ext->y == j) ans = ans - ptr_ext->value;
 
-            if (resta != 0) temp.set(i, j, resta);
+            if (ans != 0) temp.set(i, j, ans);
         }
     }   return temp;
 }
@@ -302,7 +307,7 @@ bool Matrix<T>::resize(int rows, int columns, bool force) const {
 }
 
 template <typename T>
-Matrix<T>::~Matrix() {
+void Matrix<T>::destroy() const {
     for (int i = 0; i < vector_row.size(); ++i)
         vector_row[i]->delete_recursive();
     
@@ -311,5 +316,11 @@ Matrix<T>::~Matrix() {
     for (int i = 0; i < vector_col.size(); ++i)
         delete vector_col[i];
 
+    vector_col.clear();
+}
+
+template <typename T>
+Matrix<T>::~Matrix() {
+    vector_row.clear();
     vector_col.clear();
 }
