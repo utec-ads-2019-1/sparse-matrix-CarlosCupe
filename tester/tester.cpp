@@ -34,6 +34,7 @@ void Tester::testMatrix(unsigned int rows, unsigned int columns) {
     }
 
     result = test1 - test2;
+    result.print();
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < columns; ++j) {
             ASSERT(result(i, j) == matrix1[i][j] - matrix2[i][j], "There is a problem with the subtraction");

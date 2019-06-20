@@ -74,21 +74,20 @@ template <typename T>
 void Matrix<T>::set(unsigned x, unsigned y, T value) {
     if (x >= rows || y >= columns)
         exit(1);
-    
     Element<T> **ptr_row, **ptr_col;
-    bool exist;
+    bool exist = false;
     
     if (find_by_rows(x, y, ptr_row))
-        exist = (*ptr_row)->y == y;
+        exist = ((*ptr_row)->y == y);
     
-    if (exist && value != 0) {
+    if (exist && (value != 0)) {
         (*ptr_row)->value = value;
         return;
     }
 
     find_by_cols(x, y, ptr_col);
 
-    if (exist && value == 0) {
+    if (exist && (value == 0)) {
         Node<T> *temp = (Node<T>*)(*ptr_col);
         *ptr_row = (Element<T> *)(*ptr_row)->down;
         *ptr_col = (Element<T> *)(*ptr_col)->next;
@@ -113,7 +112,7 @@ void Matrix<T>::print() const{
     Element<T> *ptr;
     for (Header<T>* row : vector_row) {
         ptr = (Element<T>*)row->down;
-        for (unsigned i = 0; i < columns; ++i) { 
+        for (unsigned i = 0; i < vector_col.size(); ++i) { 
             if (ptr && ptr->y == i) {
                 cout << ptr->value << " ";
                 ptr = (Element<T>*)ptr->down;
@@ -131,13 +130,13 @@ T Matrix<T>::operator()(unsigned x, unsigned y) const {
     
     Element<T> **ptr;
 
-    if (!find_by_rows(x, y, ptr)) exit(1);
+    if (!find_by_rows(x, y, ptr)) return 0;
     
-    return (ptr) ? (*ptr)->value : 0;
+    return ((*ptr)->y == y) ? (*ptr)->value : 0;
 }
 
 template <typename T>
-Matrix<T> Matrix<T>::operator*(T scalar) const {//Se puede mejorar
+Matrix<T> Matrix<T>::operator*(T scalar) const {
     Element<T> *ptr;
     Matrix<T> temp(rows, columns);
 
@@ -190,34 +189,25 @@ Matrix<T> Matrix<T>::operator+(Matrix<T> other) const {
     Matrix<T> temp(rows, columns);
     Element<T> *ptr_int, *ptr_ext;
     
-    auto matrix_op = [&](Element<T> *&ptr, T val) {
-        temp.set(ptr->x, ptr->y, ptr->value + val);
-        ptr = (Element<T>*)ptr->down;
-    };
+    T suma;
 
-    for (int i = 0; i < rows; ++i) {
+    for (unsigned i = 0; i < vector_row.size(); ++i) {
         ptr_int = (Element<T>*)vector_row[i]->down;
         ptr_ext = (Element<T>*)other.vector_row[i]->down;
-        
-        while (ptr_int && ptr_ext) {
-            if (ptr_ext == nullptr) {
-                matrix_op(ptr_int, 0);
-                continue;
-            }
-            if (ptr_int == nullptr) {
-                matrix_op(ptr_ext, 0);
-                continue;
-            }
+        for (unsigned j = 0; j < vector_col.size(); ++j) {
+            suma = 0;
 
-            if (ptr_ext->y == ptr_int->y) {
-                matrix_op(ptr_int, ptr_ext->value);
+            while (ptr_int && ptr_int->y < j)
+                ptr_int = (Element<T>*)ptr_int->down;
+
+            while (ptr_ext && ptr_ext->y < j)
                 ptr_ext = (Element<T>*)ptr_ext->down;
-            } else {
-                if (ptr_ext->y < ptr_int->y)
-                    matrix_op(ptr_ext, 0);
-                else
-                    matrix_op(ptr_int, 0);
-            }
+            
+            if (ptr_int && ptr_int->y == j) suma += ptr_int->value;
+            
+            if (ptr_ext && ptr_ext->y == j) suma += ptr_ext->value;
+
+            if (suma != 0) temp.set(i, j, suma);
         }
     }   return temp;
 }
@@ -229,34 +219,25 @@ Matrix<T> Matrix<T>::operator-(Matrix<T> other) const {
     Matrix<T> temp(rows, columns);
     Element<T> *ptr_int, *ptr_ext;
     
-    auto matrix_op = [&](Element<T> *&ptr, T val) {
-        temp.set(ptr->x, ptr->y, ptr->value - val);
-        ptr = (Element<T>*)ptr->down;
-    };
+    T resta;
 
-    for (int i = 0; i < rows; ++i) {
+    for (unsigned i = 0; i < vector_row.size(); ++i) {
         ptr_int = (Element<T>*)vector_row[i]->down;
         ptr_ext = (Element<T>*)other.vector_row[i]->down;
-        
-        while (ptr_int && ptr_ext) {
-            if (ptr_ext == nullptr) {
-                matrix_op(ptr_int, 0);
-                continue;
-            }
-            if (ptr_int == nullptr) {
-                matrix_op(ptr_ext, -2 * ptr_ext->value);
-                continue;
-            }
+        for (unsigned j = 0; j < vector_col.size(); ++j) {
+            resta = 0;
+            
+            while (ptr_int && ptr_int->y < j)
+                ptr_int = (Element<T>*)ptr_int->down;
 
-            if (ptr_ext->y == ptr_int->y) {
-                matrix_op(ptr_int, ptr_ext->value);
+            while (ptr_ext && ptr_ext->y < j)
                 ptr_ext = (Element<T>*)ptr_ext->down;
-            } else {
-                if (ptr_ext->y < ptr_int->y)
-                    matrix_op(ptr_ext, -2 * ptr_ext->value);
-                else
-                    matrix_op(ptr_int, 0);
-            }
+            
+            if (ptr_int && ptr_int->y == j) resta = ptr_int->value;
+            
+            if (ptr_ext && ptr_ext->y == j) resta -= ptr_ext->value;
+
+            if (resta != 0) temp.set(i, j, resta);
         }
     }   return temp;
 }
@@ -292,6 +273,32 @@ Matrix<T> Matrix<T>::transpose() const {
             ptr_new = (Element<T>**)&(*ptr_new)->down;
         }
     }   return temp;
+}
+template <typename T>
+
+bool Matrix<T>::resize(int rows, int columns, bool force) const {
+    if (rows < this->rows) {
+        for (unsigned i = rows; i < vector_row.size(); ++i)
+            vector_row[i]->delete_recursive();
+        
+        vector_row.resize(rows);
+    } else {
+        for (unsigned i = vector_row.size(); i < rows; ++i)
+            vector_row.push_back(new Header<T> (i));
+    }
+
+    if (columns < this->columns) {
+        for (unsigned i = columns; i < vector_col.size(); ++i) {
+            delete vector_col[i];
+        }
+        vector_col.resize(columns);
+    } else {
+        for (unsigned i = vector_col.size(); i < columns; ++i)
+            vector_col.push_back(new Header<T> (i));
+    }
+
+    this->rows = rows;
+    this->columns = columns;
 }
 
 template <typename T>
